@@ -71,6 +71,11 @@ The complete automation workflow built with n8n.
 When the AI identifies a customer request as high priority, the workflow automatically sends an email alert through Gmail.
 <img width="841" height="461" alt="image" src="https://github.com/user-attachments/assets/38a3801f-85fc-4be4-a389-6389341c3247" />
 
+### Google Sheets Support Records
+
+All customer requests and AI analysis results are automatically stored in Google Sheets, including the request category, priority, summary, and suggested reply.
+<img width="1100" height="659" alt="螢幕擷取畫面 2026-08-09 132704" src="https://github.com/user-attachments/assets/904521bd-e998-45bb-a825-0d7ef9960b4f" />
+
 
 
 ---
