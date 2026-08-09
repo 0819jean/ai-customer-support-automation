@@ -151,10 +151,6 @@ ai-customer-support-automation/
 │
 ├── README.md
 │
-├── workflow/
-│   └── ai-customer-support-workflow-public.json
-│
-└── screenshots/
-    ├── workflow.png
-    └── high-priority-email-alert.png
+└── workflow/
+    └── ai_customer_support_workflow_public.json
 ```
