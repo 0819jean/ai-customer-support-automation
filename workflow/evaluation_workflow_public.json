@@ -1,0 +1,290 @@
+{
+  "name": "AI Customer Support Test Generator",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b709a95f-d399-4868-83c3-f8f16ec0f889",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-5-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "你是一個客服 AI 測試資料產生器。\n\n你會收到一個 test_id，請根據 test_id 產生 1 筆繁體中文客服案件。\n\n目前 test_id：\n{{ $json.test_id }}\n\n【Priority 分配規則】\n\ntest_id = 1 → low\ntest_id = 2 → medium\ntest_id = 3 → high\ntest_id = 4 → low\ntest_id = 5 → medium\n\n你必須嚴格按照上述規則設定 expected_priority，\n並根據指定的 priority 設計合理的客服情境。\n\n【Category】\n\n案件從以下四種類型選擇：\n\n1. inquiry\n一般詢問，例如產品資訊、訂單進度、使用方式。\n\n2. complaint\n客戶抱怨，例如退款延遲、商品損壞、服務態度不佳、\n長時間沒有收到商品。\n\n3. technical_issue\n技術問題，例如帳號無法登入、系統錯誤、\nApp 閃退、功能無法使用、密碼重設失敗。\n\n4. other\n不屬於以上三種類型。\n\n【Priority 定義】\n\nlow：\n一般問題，不需要立即處理。\n例如產品資訊、使用方式、普通訂單查詢。\n\nmedium：\n影響使用者，但沒有造成嚴重損失。\n例如配送延遲、部分功能異常、一般客訴。\n\nhigh：\n需要立即處理的重要問題。\n例如帳號被鎖、付款異常、重複扣款、\n退款嚴重延遲、資安問題、重要功能完全無法使用。\n\n【輸出格式】\n\n{\n  \"name\": \"隨機中文姓名\",\n  \"email\": \"虛構 email\",\n  \"message\": \"繁體中文客服訊息\",\n  \"expected_category\": \"inquiry\",\n  \"expected_priority\": \"low\"\n}\n\n【規則】\n\n- 必須嚴格按照 test_id 決定 expected_priority。\n- message 的嚴重程度必須符合 expected_priority。\n- 每次執行內容盡量不同。\n- message 要像真實客戶寫的訊息。\n- expected_category 必須是 inquiry、complaint、technical_issue、other 其中之一。\n- expected_priority 必須是 low、medium、high 其中之一。\n- email 必須是虛構測試資料。\n- 不要使用 Markdown。\n- 不要加入 ```json。\n- 只輸出合法 JSON。"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        0
+      ],
+      "id": "ac8089c5-ddd2-4419-97b0-6ff56945daae",
+      "name": "Generate Customer Case"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/customer-support",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{ JSON.parse($json.output[0].content[0].text).name }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ JSON.parse($json.output[0].content[0].text).email }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ JSON.parse($json.output[0].content[0].text).message }}"
+            },
+            {
+              "name": "expected_category",
+              "value": "={{ JSON.parse($json.output[0].content[0].text).expected_category }}"
+            },
+            {
+              "name": "expected_priority",
+              "value": "={{ JSON.parse($json.output[0].content[0].text).expected_priority }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        816,
+        0
+      ],
+      "id": "f1a63c86-612e-41e8-9f85-4cdf9c19a92e",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "return Array.from({ length: 5 }, (_, i) => ({\n  json: {\n    test_id: i + 1\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "b77cb5a8-5552-43ae-b239-50d7e5c517fa",
+      "name": "Generate 5 Test Runs"
+    },
+    {
+      "parameters": {
+        "jsCode": "const predictions = $input.all();\nconst generatedItems = $('Generate Customer Case').all();\n\nlet categoryCorrect = 0;\nlet priorityCorrect = 0;\nlet validCases = 0;\nlet parseErrors = 0;\n\nconst details = [];\n\nfor (let i = 0; i < predictions.length; i++) {\n  const predicted = predictions[i].json;\n\n  let rawText =\n    generatedItems[i].json.output[0].content[0].text;\n\n  let expected;\n\n  try {\n    // 清掉模型偶爾加上的 Markdown code fence\n    rawText = rawText\n      .replace(/```json/gi, '')\n      .replace(/```/g, '')\n      .trim();\n\n    // 如果前後混入其他文字，只擷取第一個 { 到最後一個 }\n    const start = rawText.indexOf('{');\n    const end = rawText.lastIndexOf('}');\n\n    if (start === -1 || end === -1) {\n      throw new Error('No JSON object found');\n    }\n\n    const jsonText = rawText.slice(start, end + 1);\n\n    expected = JSON.parse(jsonText);\n\n  } catch (error) {\n    parseErrors++;\n\n    details.push({\n      test_case: i + 1,\n      parse_error: true,\n      raw_output: rawText,\n      error_message: error.message\n    });\n\n    continue;\n  }\n\n  validCases++;\n\n  const isCategoryCorrect =\n    predicted.predicted_category === expected.expected_category;\n\n  const isPriorityCorrect =\n    predicted.predicted_priority === expected.expected_priority;\n\n  if (isCategoryCorrect) categoryCorrect++;\n  if (isPriorityCorrect) priorityCorrect++;\n\n  details.push({\n    test_case: i + 1,\n\n    message: expected.message,\n\n    expected_category: expected.expected_category,\n    predicted_category: predicted.predicted_category,\n    category_correct: isCategoryCorrect,\n\n    expected_priority: expected.expected_priority,\n    predicted_priority: predicted.predicted_priority,\n    priority_correct: isPriorityCorrect,\n\n    summary: predicted.summary,\n    suggested_reply: predicted.suggested_reply,\n\n    parse_error: false\n  });\n}\n\nconst categoryAccuracy =\n  validCases > 0\n    ? (categoryCorrect / validCases) * 100\n    : 0;\n\nconst priorityAccuracy =\n  validCases > 0\n    ? (priorityCorrect / validCases) * 100\n    : 0;\n\nconst overallCorrect =\n  categoryCorrect + priorityCorrect;\n\nconst overallTotal =\n  validCases * 2;\n\nconst overallAccuracy =\n  overallTotal > 0\n    ? (overallCorrect / overallTotal) * 100\n    : 0;\n\nreturn [\n  {\n    json: {\n      total_cases: predictions.length,\n      valid_cases: validCases,\n      parse_errors: parseErrors,\n\n      category_correct: categoryCorrect,\n      category_accuracy:\n        categoryAccuracy.toFixed(2) + \"%\",\n\n      priority_correct: priorityCorrect,\n      priority_accuracy:\n        priorityAccuracy.toFixed(2) + \"%\",\n\n      overall_correct: overallCorrect,\n      overall_total: overallTotal,\n      overall_accuracy:\n        overallAccuracy.toFixed(2) + \"%\",\n\n      details\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "41ed6369-1795-41f3-8880-c07fb542519d",
+      "name": "Evaluate Results"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "AI Evaluation Results"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1119471796,
+          "mode": "list",
+          "cachedResultName": "Evaluation_Summary"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_time": "={{ $now }}",
+            "total_cases": "={{ $('Evaluate Results').first().json.total_cases }}\n",
+            "category_correct": "={{ $('Evaluate Results').first().json.category_correct }}",
+            "category_accuracy": "={{ $('Evaluate Results').first().json.category_accuracy }}",
+            "priority_correct": "={{ $('Evaluate Results').first().json.priority_correct }}",
+            "priority_accuracy": "={{ $('Evaluate Results').first().json.priority_accuracy }}",
+            "overall_correct": "={{ $('Evaluate Results').first().json.overall_correct }}",
+            "overall_accuracy": "={{ $('Evaluate Results').first().json.overall_accuracy }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "run_time",
+              "displayName": "run_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "total_cases",
+              "displayName": "total_cases",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category_correct",
+              "displayName": "category_correct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category_accuracy",
+              "displayName": "category_accuracy",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority_correct",
+              "displayName": "priority_correct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority_accuracy",
+              "displayName": "priority_accuracy",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "overall_correct",
+              "displayName": "overall_correct",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "overall_accuracy",
+              "displayName": "overall_accuracy",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1264,
+        0
+      ],
+      "id": "c1da0573-cd82-417e-8979-72d13b440c16",
+      "name": "Append row in sheet"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Generate 5 Test Runs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Customer Case": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate 5 Test Runs": {
+      "main": [
+        [
+          {
+            "node": "Generate Customer Case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Results": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}

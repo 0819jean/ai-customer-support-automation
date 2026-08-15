@@ -1,0 +1,315 @@
+{
+  "name": "AI Customer Support Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "customer-support",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1184,
+        96
+      ],
+      "id": "15f9be43-237b-4348-9d5b-ea0106503843",
+      "name": "Customer Request"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-5-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=你是一個客服 AI 助理。\n\n請分析以下客戶訊息：\n\n客戶姓名：\n{{ $json.body.name }}\n\n客戶 Email：\n{{ $json.body.email }}\n\n客戶訊息：\n{{ $json.body.message }}\n\n請將客戶訊息分類為以下其中一種類型：\n\n- inquiry：一般詢問\n- complaint：客戶抱怨\n- technical_issue：技術問題\n- other：其他無法歸類的問題\n\ncategory 必須且只能輸出以下其中一個值：\n- inquiry\n- complaint\n- technical_issue\n- other\n\n請根據問題的嚴重程度，將 priority 判斷為以下其中一個值：\n- low\n- medium\n- high\n\nPriority 判斷規則：\n\nlow：\n- 一般資訊詢問\n- 產品資訊詢問\n- 使用方式詢問\n- 簡單的訂單狀態查詢\n- 問題沒有明顯影響客戶正常使用\n\nmedium：\n- 商品配送延遲\n- 商品缺貨或暫時無法出貨\n- 一般客戶抱怨\n- 剛提出的一般退款申請\n- 部分功能發生問題，但仍可使用其他功能\n- 問題造成客戶不便，但沒有造成嚴重的金錢損失、資安風險或帳號存取問題\n- 客戶已正常付款，但商品延遲、缺貨或尚未出貨\n\nhigh：\n只有在問題明確造成嚴重影響時，才可以判斷為 high，例如：\n- 帳號被鎖定，導致客戶完全無法使用服務\n- 未授權付款或不明扣款\n- 重複扣款\n- 明確的錯誤付款或可疑交易\n- 已經申請退款，但退款異常延遲很長時間\n- 資安或個人資料外洩問題\n- 重要或核心功能完全無法使用\n- 已造成或可能造成嚴重金錢損失\n\n重要判斷原則：\n- 不可以只因為客戶訊息中出現「付款」、「扣款」、「退款」、「緊急」、「延遲」或「取消」等字詞，就直接判斷為 high。\n- 如果付款本身是正常成功的，只是商品延遲、缺貨或等待出貨，通常應判斷為 medium，而不是 high。\n- 「已付款」不等於「付款異常」。\n- 一般物流延遲或一般退款需求通常屬於 medium。\n- 如果無法確定應該判斷為 medium 還是 high，除非有明確的嚴重金錢損失、資安問題或帳號存取問題，否則優先判斷為 medium。\n\n請只回傳合法 JSON，格式必須完全符合以下結構：\n\n{\n  \"category\": \"technical_issue\",\n  \"priority\": \"high\",\n  \"summary\": \"用繁體中文簡短摘要客戶的問題\",\n  \"suggested_reply\": \"用繁體中文產生適合客服人員回覆客戶的內容\"\n}\n\n輸出規則：\n- summary 必須使用繁體中文。\n- suggested_reply 必須使用繁體中文。\n- category 只能是 inquiry、complaint、technical_issue、other。\n- priority 只能是 low、medium、high。\n- 不要加入 Markdown。\n- 不要加入 ```json。\n- 不要加入任何 JSON 以外的說明文字。\n- 只輸出合法 JSON。"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        -976,
+        96
+      ],
+      "id": "3c6e4bc2-d332-41dd-89d5-bc3ae500dc02",
+      "name": "AI Customer Analysis"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first(); //取的上一個Node傳過來的第一筆資料\n\nconst text = input.json.output[0].content[0].text; //沿著左邊input看到的資料結構排序\n\nconst parsed = JSON.parse(text);\n\n//原本是一整串字串沒有排序的輸出，但改正上面那樣就會變成有格式地輸出\n\nconst webhookData = $('Customer Request').first().json.body;\n// 取得最前面 Webhook 收到的原始客戶資料\n\nconst categoryCorrect =\n  parsed.category === webhookData.expected_category;\n\nconst priorityCorrect =\n  parsed.priority === webhookData.expected_priority;\n\nreturn[\n  {\n    JSON:{\n      name:webhookData.name,\n      email:webhookData.email,\n      message:webhookData.message,\n      \n      expected_category: webhookData.expected_category,\n      predicted_category: parsed.category,\n      category_correct: categoryCorrect,\n\n      expected_priority: webhookData.expected_priority,\n      predicted_priority: parsed.priority,\n      priority_correct: priorityCorrect,\n\n      summary:parsed.summary,\n      suggested_reply:parsed.suggested_reply\n    }\n  }\n];\n//把整理好的 JSON 當成這個 Node 的 Output\n//右邊不再是一大串 text，而是可以拆開。"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -624,
+        96
+      ],
+      "id": "b9e9240f-c390-4880-9ecd-91090b1baa72",
+      "name": "Parse AI Response"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "AI Customer Support Records"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "工作表1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "name": "={{ $json.JSON.name }}",
+            "email": "={{ $json.JSON.email }}",
+            "message": "={{ $json.JSON.message }}",
+            "category": "={{ $json.JSON.predicted_category }}",
+            "priority": "={{ $json.JSON.predicted_priority }}",
+            "summary": "={{ $json.JSON.summary }}",
+            "suggested_reply": "={{ $json.JSON.suggested_reply }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "suggested_reply",
+              "displayName": "suggested_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -288,
+        96
+      ],
+      "id": "d144b769-ee2d-4eaf-82e8-8fab93d3af29",
+      "name": "Save Support Record"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8c719e2e-6bd6-48ee-a8ca-439848e4e9e1",
+              "leftValue": "={{ $json.priority }}",
+              "rightValue": "high",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        16,
+        96
+      ],
+      "id": "5b3f1819-e818-4c39-9e3d-4170e9cf6b57",
+      "name": "Check Priority"
+    },
+    {
+      "parameters": {
+        "sendTo": "your-email@example.com",
+        "subject": "=🚨 High Priority 客服案件 - {{ $json.name }}",
+        "message": "=<h2>🚨 High Priority 客服案件</h2>\n\n<p><strong>客戶姓名：</strong>{{ $json.name }}</p>\n<p><strong>客戶 Email：</strong>{{ $json.email }}</p>\n<p><strong>案件類型：</strong>{{ $json.category }}</p>\n<p><strong>優先程度：</strong>{{ $json.priority }}</p>\n\n<hr>\n\n<p><strong>客戶原始訊息：</strong></p>\n<p>{{ $json.message }}</p>\n\n<p><strong>AI 摘要：</strong></p>\n<p>{{ $json.summary }}</p>\n\n<p><strong>AI 建議回覆：</strong></p>\n<p>{{ $json.suggested_reply }}</p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "29a31540-479a-4047-99aa-60889a16cec8",
+      "name": "Send High Priority Alert"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  predicted_category: $('Parse AI Response').first().json.JSON.predicted_category,\n  predicted_priority: $('Parse AI Response').first().json.JSON.predicted_priority,\n  summary: $('Parse AI Response').first().json.JSON.summary,\n  suggested_reply: $('Parse AI Response').first().json.JSON.suggested_reply\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        528,
+        112
+      ],
+      "id": "bb77f34c-edff-4821-ba6d-e525775cefaa",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "connections": {
+    "Customer Request": {
+      "main": [
+        [
+          {
+            "node": "AI Customer Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Customer Analysis": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Save Support Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Support Record": {
+      "main": [
+        [
+          {
+            "node": "Check Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Priority": {
+      "main": [
+        [
+          {
+            "node": "Send High Priority Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send High Priority Alert": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}
