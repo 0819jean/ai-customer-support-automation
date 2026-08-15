@@ -249,8 +249,3 @@ The workflow files are provided as public versions for demonstration purposes.
 Computer Science student interested in AI applications, workflow automation, system integration, and LLM evaluation.
 
 ---
-Priority Check
-      ↓
-High Priority?
-      ↓
-Gmail Alert
