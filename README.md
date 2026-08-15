@@ -184,7 +184,8 @@ ai-customer-support-automation/
 │   └── evaluation_workflow_public.json
 │
 ├── .gitignore
-└── README.md
+├── README.md
+└── README.zh-TW.md
 ```
 
 ### Workflow Files
@@ -248,69 +249,6 @@ The workflow files are provided as public versions for demonstration purposes.
 Computer Science student interested in AI applications, workflow automation, system integration, and LLM evaluation.
 
 ---
-
-# 🇹🇼 繁體中文版
-
-## 📌 專案介紹
-
-這是一套使用 **n8n、OpenAI、Google Sheets 與 Gmail** 建立的 AI 客服自動化與評估系統。
-
-這個專案不只讓 AI 自動處理客服訊息，我也另外建立了一套 **AI Evaluation Workflow**，用來自動產生測試案例、驗證 AI 的分類結果，並計算系統的分類準確率。
-
-整個專案主要分成兩個部分：
-
-### 1. AI 客服自動化系統
-
-當客戶送出客服訊息後，系統會自動：
-
-- 分析客戶訊息
-- 判斷問題類型：
-  - `inquiry`
-  - `complaint`
-  - `technical_issue`
-  - `other`
-- 判斷處理優先級：
-  - `low`
-  - `medium`
-  - `high`
-- 產生繁體中文問題摘要
-- 產生建議客服回覆
-- 將客服紀錄寫入 Google Sheets
-- 偵測高優先級案件
-- 高優先級案件自動寄送 Gmail 通知
-
-### 2. AI 自動評估系統
-
-為了確認 AI 的分類結果是否可靠，我另外建立了一套自動化 Evaluation Workflow。
-
-系統會：
-
-1. 自動產生多筆模擬客服案件
-2. 為每筆案例設定 Expected Category 與 Expected Priority
-3. 透過 HTTP Request 將案例送入原本的客服 Workflow
-4. 取得 AI 的 Predicted Category 與 Predicted Priority
-5. 自動比較 Expected 與 Predicted 結果
-6. 偵測無法解析或格式錯誤的 AI 輸出
-7. 計算 Category、Priority 與 Overall Accuracy
-8. 將評估結果寫入 Google Sheets
-
----
-
-## 🔄 系統架構
-
-### Customer Support Workflow
-
-```text
-Customer Request
-      ↓
-Webhook
-      ↓
-OpenAI Customer Analysis
-      ↓
-Parse AI Response
-      ↓
-Google Sheets
-      ↓
 Priority Check
       ↓
 High Priority?
