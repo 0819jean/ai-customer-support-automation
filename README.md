@@ -1,156 +1,318 @@
-# 🤖 AI Customer Support Automation
+# 🤖 AI Customer Support Automation & Evaluation System
 
-An AI-powered customer support automation workflow built with n8n, OpenAI, Google Sheets, and Gmail.
+[🇺🇸 English](README.md) | [🇹🇼 繁體中文](README.zh-TW.md)
+
+An AI-powered customer support automation and evaluation system built with **n8n, OpenAI, Google Sheets, and Gmail**.
+
+This project not only automates customer support workflows, but also includes an automated evaluation pipeline that generates test cases, evaluates AI classification results, and measures system accuracy.
+
+---
 
 ## 📌 Project Overview
 
-This project is an AI-powered customer support automation system built with n8n. It automatically analyzes incoming customer messages, identifies the request category and priority, generates a summary and suggested reply, and stores the results in Google Sheets.
+This project simulates an AI-powered customer support system that automatically processes incoming customer messages.
 
-For high-priority customer requests, the workflow automatically sends a Gmail alert so that urgent issues can be handled quickly.
+The system can:
 
-## ✨ Features
+- Classify customer requests into different categories
+- Determine request priority
+- Generate a concise issue summary
+- Generate a suggested customer service reply
+- Store support records in Google Sheets
+- Automatically send Gmail alerts for high-priority cases
 
-- Receive customer requests through an n8n Webhook
-- Analyze customer messages using AI
-- Classify requests by category and priority
-- Generate an AI summary and suggested reply
-- Store customer support records in Google Sheets
-- Automatically detect high-priority cases
-- Send Gmail alerts for high-priority customer requests
+To evaluate the reliability of the AI classification system, I also built a separate **AI Evaluation Workflow**.
 
-## 🔄 Workflow Architecture
-
-Customer Request  
-↓  
-AI Customer Analysis  
-↓  
-Parse AI Response  
-↓  
-Save Support Record  
-↓  
-Check Priority  
-↓  
-High Priority → Send Gmail Alert
-
-## 🛠️ Tech Stack
-
-| Technology | Purpose |
-| --- | --- |
-| n8n | Workflow automation and orchestration |
-| OpenAI GPT-5-mini | Customer message analysis and response generation |
-| JavaScript | Parse AI responses and transform data |
-| Google Sheets | Store customer support records |
-| Gmail | Send alerts for high-priority cases |
-| Webhook / HTTP POST | Receive customer requests |
-
-## 📦 AI Structured Output
-
-The AI model analyzes each customer message and returns structured JSON data:
-
-```json
-{
-  "category": "complaint",
-  "priority": "high",
-  "summary": "收到的商品損壞，且客服尚未回覆，需要盡快處理。",
-  "suggested_reply": "您好，非常抱歉造成您的困擾。我們已收到您的問題，將協助您進一步處理。"
-}
-```
-
-The JavaScript node parses the AI response and combines it with the original customer information for use by the following workflow nodes.
-
-## 📸 Demo Screenshots
-
-### n8n Workflow
-
-The complete automation workflow built with n8n.
-<img width="864" height="424" alt="image" src="https://github.com/user-attachments/assets/e10671d7-a485-4bb0-a086-dda77ad34f80" />
-
-
-### High Priority Email Alert
-
-When the AI identifies a customer request as high priority, the workflow automatically sends an email alert through Gmail.
-<img width="841" height="461" alt="image" src="https://github.com/user-attachments/assets/38a3801f-85fc-4be4-a389-6389341c3247" />
-
-### Google Sheets Support Records
-
-All customer requests and AI analysis results are automatically stored in Google Sheets, including the request category, priority, summary, and suggested reply.
-<img width="1100" height="659" alt="螢幕擷取畫面 2026-08-09 132704" src="https://github.com/user-attachments/assets/904521bd-e998-45bb-a825-0d7ef9960b4f" />
-
-
+The evaluation workflow automatically generates customer support test cases, sends them through the customer support system, compares the AI predictions with expected labels, and calculates classification accuracy.
 
 ---
-## ⚙️ How It Works
 
-1. **Customer Request**
-   - Receives customer information through an n8n Webhook using an HTTP POST request.
+## ✨ Main Features
 
-2. **AI Customer Analysis**
-   - Sends the customer message to the OpenAI model.
-   - The AI analyzes the request and generates `category`, `priority`, `summary`, and `suggested_reply`.
+### Customer Support Automation
 
-3. **Parse AI Response**
-   - Uses JavaScript to parse the AI-generated JSON response.
-   - Combines the AI analysis with the original customer information.
+- Receive customer requests through an n8n Webhook
+- Analyze customer messages using OpenAI
+- Classify requests into:
+  - `inquiry`
+  - `complaint`
+  - `technical_issue`
+  - `other`
+- Assign priority:
+  - `low`
+  - `medium`
+  - `high`
+- Generate Traditional Chinese summaries
+- Generate suggested customer service replies
+- Store results in Google Sheets
+- Detect high-priority cases
+- Send Gmail alerts automatically
 
-4. **Save Support Record**
-   - Stores the customer information and AI analysis results in Google Sheets.
+### AI Evaluation System
 
-5. **Check Priority**
-   - Checks whether the customer request is classified as `high` priority.
+- Automatically generate multiple customer support test cases
+- Generate expected category and priority labels
+- Send test cases to the customer support workflow through HTTP requests
+- Compare expected labels with AI predictions
+- Detect invalid or unparsable outputs
+- Calculate category accuracy
+- Calculate priority accuracy
+- Calculate overall classification accuracy
+- Store evaluation results in Google Sheets
 
-6. **Send High Priority Alert**
-   - If the priority is `high`, the workflow automatically sends a Gmail alert.
+---
 
-## 🧪 Example Test Case
+## 🔄 System Architecture
 
-### Customer Request
+### Customer Support Workflow
 
-```json
-{
-  "name": "王小美",
-  "email": "xiaomei@example.com",
-  "message": "我收到的商品是損壞的，而且已經聯絡客服三次都沒有收到任何回覆。我非常不滿意，因為這個商品是急著要使用的，希望你們可以立即處理並提供換貨或退款。"
-}
+```text
+Customer Request
+      ↓
+Webhook
+      ↓
+OpenAI Customer Analysis
+      ↓
+Parse AI Response
+      ↓
+Google Sheets
+      ↓
+Priority Check
+      ↓
+High Priority?
+      ↓
+Gmail Alert
 ```
-### AI Analysis Result
 
-The AI analyzes the customer request and returns structured data:
+### Evaluation Workflow
 
-```json
-{
-  "category": "complaint",
-  "priority": "high",
-  "summary": "收到的商品為損壞品，已三次聯絡客服但未獲回覆，因急需使用，要求立即換貨或退款。",
-  "suggested_reply": "非常抱歉造成您的困擾與不便，我們已收到您的問題，將優先協助您處理。"
-}
+```text
+Manual Trigger
+      ↓
+Generate Test Runs
+      ↓
+Generate Customer Cases
+      ↓
+HTTP Request
+      ↓
+Customer Support Workflow
+      ↓
+Evaluate Results
+      ↓
+Google Sheets Evaluation Summary
 ```
 
-### Automation Result
+---
 
-Because the request is classified as `high` priority:
+## 🧪 AI Evaluation
 
-- The customer support record is automatically stored in Google Sheets.
-- The workflow follows the `TRUE` branch of the priority check.
-- A high-priority alert email is automatically sent through Gmail.
+The evaluation workflow compares two AI predictions:
+
+1. **Category Classification**
+2. **Priority Classification**
+
+For each test case, the system records:
+
+```text
+Expected Category → Predicted Category
+Expected Priority → Predicted Priority
+```
+
+It then calculates:
+
+```text
+Category Accuracy
+Priority Accuracy
+Overall Accuracy
+```
+
+During one evaluation run with 5 automatically generated test cases, the system achieved:
+
+| Metric | Result |
+|---|---:|
+| Valid Cases | 5 / 5 |
+| Category Accuracy | 80% |
+| Priority Accuracy | 80% |
+| Overall Accuracy | 80% |
+
+The evaluation also revealed an important issue: some medium-priority customer complaints were classified as high priority.
+
+Instead of manually inspecting individual cases only, this evaluation pipeline makes the classification behavior measurable and provides a clear direction for future prompt optimization.
+
+---
+
+## 🔍 Example Evaluation Finding
+
+Example:
+
+```text
+Customer Issue:
+Delayed order with a request for cancellation/refund
+
+Expected Priority:
+medium
+
+AI Prediction:
+high
+```
+
+This demonstrates that the current model may sometimes interpret payment-related or refund-related language as more urgent than expected.
+
+This is a useful finding for improving priority classification rules and prompt design.
+
+---
+
+## 🛠️ Technologies
+
+- **n8n** — workflow automation and orchestration
+- **OpenAI API** — customer message analysis and test case generation
+- **JavaScript** — JSON parsing and evaluation logic
+- **HTTP / Webhook** — communication between workflows
+- **Google Sheets API** — support records and evaluation results
+- **Gmail API** — high-priority notifications
+- **GitHub** — workflow version control and project documentation
+
+---
+
+## 📂 Repository Structure
+
+```text
+ai-customer-support-automation/
+│
+├── workflow/
+│   ├── customer_support_workflow_public.json
+│   └── evaluation_workflow_public.json
+│
+├── .gitignore
+└── README.md
+```
+
+### Workflow Files
+
+`customer_support_workflow_public.json`
+
+Main AI customer support automation workflow.
+
+`evaluation_workflow_public.json`
+
+Automated AI testing and evaluation workflow.
+
+---
+
+## 💡 What I Learned
+
+Through this project, I gained hands-on experience with:
+
+- Designing AI-powered automation workflows
+- Integrating LLMs into real business processes
+- Building APIs with Webhooks and HTTP requests
+- Handling structured JSON responses from LLMs
+- Designing AI classification rules
+- Creating automated AI test cases
+- Measuring AI classification accuracy
+- Debugging malformed AI-generated JSON
+- Evaluating model behavior instead of relying only on successful demos
+- Identifying classification errors and planning prompt improvements
+
+One of the most important lessons from this project is that **building an AI system is not only about making the workflow work — it is also important to evaluate whether the AI is making the correct decisions.**
 
 ---
 
 ## 🚀 Future Improvements
 
-- Automatically send AI-generated replies to customers
-- Add more detailed priority levels and routing rules
-- Integrate LINE Bot or other messaging platforms
-- Store customer history in a database
-- Build a dashboard for monitoring customer support cases
-- Add human approval before sending AI-generated responses
+Future improvements may include:
 
-## 📂 Project Structure
+- Refine priority classification rules
+- Expand the evaluation dataset
+- Test more edge cases
+- Add confusion matrix analysis
+- Track accuracy across different prompt versions
+- Compare different AI models
+- Add automatic regression testing
+- Build a dashboard for evaluation metrics
+
+---
+
+## 🔐 Security
+
+API keys, OAuth credentials, and other sensitive information are not included in this repository.
+
+The workflow files are provided as public versions for demonstration purposes.
+
+---
+
+## 👤 Author
+
+**Jean Chuang**
+
+Computer Science student interested in AI applications, workflow automation, system integration, and LLM evaluation.
+
+---
+
+# 🇹🇼 繁體中文版
+
+## 📌 專案介紹
+
+這是一套使用 **n8n、OpenAI、Google Sheets 與 Gmail** 建立的 AI 客服自動化與評估系統。
+
+這個專案不只讓 AI 自動處理客服訊息，我也另外建立了一套 **AI Evaluation Workflow**，用來自動產生測試案例、驗證 AI 的分類結果，並計算系統的分類準確率。
+
+整個專案主要分成兩個部分：
+
+### 1. AI 客服自動化系統
+
+當客戶送出客服訊息後，系統會自動：
+
+- 分析客戶訊息
+- 判斷問題類型：
+  - `inquiry`
+  - `complaint`
+  - `technical_issue`
+  - `other`
+- 判斷處理優先級：
+  - `low`
+  - `medium`
+  - `high`
+- 產生繁體中文問題摘要
+- 產生建議客服回覆
+- 將客服紀錄寫入 Google Sheets
+- 偵測高優先級案件
+- 高優先級案件自動寄送 Gmail 通知
+
+### 2. AI 自動評估系統
+
+為了確認 AI 的分類結果是否可靠，我另外建立了一套自動化 Evaluation Workflow。
+
+系統會：
+
+1. 自動產生多筆模擬客服案件
+2. 為每筆案例設定 Expected Category 與 Expected Priority
+3. 透過 HTTP Request 將案例送入原本的客服 Workflow
+4. 取得 AI 的 Predicted Category 與 Predicted Priority
+5. 自動比較 Expected 與 Predicted 結果
+6. 偵測無法解析或格式錯誤的 AI 輸出
+7. 計算 Category、Priority 與 Overall Accuracy
+8. 將評估結果寫入 Google Sheets
+
+---
+
+## 🔄 系統架構
+
+### Customer Support Workflow
 
 ```text
-ai-customer-support-automation/
-│
-├── README.md
-│
-└── workflow/
-    └── ai_customer_support_workflow_public.json
-```
+Customer Request
+      ↓
+Webhook
+      ↓
+OpenAI Customer Analysis
+      ↓
+Parse AI Response
+      ↓
+Google Sheets
+      ↓
+Priority Check
+      ↓
+High Priority?
+      ↓
+Gmail Alert
